@@ -1,0 +1,20 @@
+# --- Python / Backend ---
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# --- Node / React / Frontend ---
+node_modules/
+dist/
+.env.local
+
+# --- Editor / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Logs ---
+*.log
