@@ -1,4 +1,5 @@
 import pathlib
+#import time
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from src.database import get_db
@@ -76,9 +77,20 @@ def show_event(db: Session = Depends(get_db)):
 
 @app.post('/bookings', response_model =schemas.BookingOut)
 def booking_create(booking: schemas.BookingCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    ticket_type = db.query(models.TicketType).filter(models.TicketType.id == booking.ticket_type_id).first()
+    ticket_type = db.query(models.TicketType).filter(models.TicketType.id == booking.ticket_type_id).with_for_update().first()
     if not ticket_type:
         raise HTTPException(status_code=404, detail="Ticket type not found")
+
+    existing_bookings = db.query(models.Booking).filter(
+        models.Booking.ticket_type_id == booking.ticket_type_id,
+        models.Booking.status == "booked"
+    ).all()
+    total_booked=sum(b.quantity for b in existing_bookings)
+#    time.sleep(0.1) # artificial delay used to reliably reproduce the race condition during testing.
+
+    if total_booked + booking.quantity > ticket_type.capacity:
+        raise HTTPException(status_code = 409, detail = "Not enough capacity")
+    
     new_booking = models.Booking(
     user_id=current_user.id,
     ticket_type_id=booking.ticket_type_id,
